@@ -13,27 +13,22 @@
 
 ---
 
-## ✅ Now Deployable Everywhere
-
-This API now supports deployment on **every major platform** — including Vercel, Railway, Render, Docker VPS, and Replit.
+## ✅ Supported Platforms
 
 | Platform | Mode | Notes |
 |---|---|---|
-| **Vercel** | `CF_CLEARANCE` cookie mode | Set `CF_CLEARANCE` env var — no Chromium needed. Cookie lasts **1 year**. |
-| **Railway / Render** | ViperTLS (auto-solve) | Docker-based. Chromium solves CF challenge automatically at startup. |
+| **Railway** | ViperTLS (auto-solve) | Docker-based. Recommended. `railway.toml` included. |
+| **Render** | ViperTLS (auto-solve) | Docker-based. `render.yaml` included. |
 | **VPS / Docker** | ViperTLS (auto-solve) | Best option. Full headless Chromium bypass, zero manual steps. |
 | **Replit** | ViperTLS (auto-solve) | Uses `start.sh` with NixOS library paths pre-configured. |
 | **Local** | ViperTLS (auto-solve) | Just `pip install -r requirements.txt && uvicorn api:app`. |
+| ~~Vercel~~ | ❌ Not supported | miruro.tv's Cloudflare blocks AWS/Vercel datacenter IPs at the network level. No workaround exists. |
 
 ---
 
 ## Cloudflare Bypass — How It Works
 
-The pipe endpoint at `miruro.tv/api/secure/pipe` is behind Cloudflare. The API has two bypass modes:
-
-### Mode 1 — ViperTLS (Replit, Railway, Render, VPS, Local)
-
-Uses **ViperTLS** with headless Chromium to solve the Cloudflare JS challenge once at server startup. The resulting `cf_clearance` cookie is reused for **every** subsequent request — no browser overhead after the first solve.
+The pipe endpoint at `miruro.tv/api/secure/pipe` is behind Cloudflare. This API uses **ViperTLS** with headless Chromium to solve the challenge once at startup. The resulting `cf_clearance` cookie is reused for every subsequent request — no browser overhead after the first solve.
 
 | Layer | Tool | What it does |
 |---|---|---|
@@ -43,29 +38,7 @@ Uses **ViperTLS** with headless Chromium to solve the Cloudflare JS challenge on
 | Cookie lifetime | **1 year** | miruro.tv's CF config issues 365-day clearance cookies |
 | Expiry handling | Auto re-solve | On 403, re-warms under a lock; other requests queue and retry |
 
-### Mode 2 — CF_CLEARANCE cookie (Vercel / serverless)
-
-Set the `CF_CLEARANCE` environment variable with a pre-obtained cookie value. The API injects it into every pipe request via the `Cookie` header — no Chromium, no browser, no heavy dependencies.
-
-Since the cookie lasts **1 year**, you only need to refresh it once a year.
-
-**How to get your `CF_CLEARANCE` value:**
-1. Open `https://www.miruro.tv/` in your browser
-2. Open DevTools → Application → Cookies → `www.miruro.tv`
-3. Copy the value of `cf_clearance`
-4. Set it as the `CF_CLEARANCE` environment variable on Vercel
-
----
-
-## Deploy on Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/walterwhite-69/Miruro-API)
-
-1. Click the button above or import your fork on [vercel.com](https://vercel.com)
-2. Add environment variable: `CF_CLEARANCE` = *(your cookie value from miruro.tv)*
-3. Deploy — done. No build steps, no Chromium, instant cold starts.
-
-> The `vercel.json` is already included in this repo.
+> **Why not Vercel?** miruro.tv's Cloudflare configuration blocks requests originating from AWS and other major cloud datacenter IP ranges at the network level. This happens before any TLS or cookie check — there is no bypass possible on serverless platforms that share these IP pools.
 
 ---
 
