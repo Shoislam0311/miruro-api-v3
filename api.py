@@ -114,7 +114,14 @@ async def _pipe_get(url: str) -> str:
     """
     if _VERCEL_MODE:
         try:
-            hdrs = {**_PIPE_HEADERS}
+            # Only pass headers that don't conflict with curl_cffi's Chrome145 impersonation.
+            # sec-fetch-* and Priority are set automatically by the impersonated browser profile;
+            # injecting them manually breaks the JA4 fingerprint match.
+            hdrs = {
+                "Referer":         "https://www.miruro.tv/",
+                "Origin":          "https://www.miruro.tv",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
             if _CF_CLEARANCE:
                 hdrs["Cookie"] = f"cf_clearance={_CF_CLEARANCE}"
             async with _CurlSession(impersonate="chrome145") as c:
@@ -123,12 +130,14 @@ async def _pipe_get(url: str) -> str:
                     return r.text.strip()
                 raise HTTPException(
                     status_code=r.status_code,
-                    detail={"error": "Pipe request blocked", "status": r.status_code, "body": r.text[:300]},
+                    detail={"error": "Pipe request blocked", "status": r.status_code,
+                            "body": r.text[:300], "engine": "curl_cffi-v2"},
                 )
         except HTTPException:
             raise
         except Exception as exc:
-            raise HTTPException(status_code=502, detail={"error": "curl_cffi request failed", "detail": str(exc)})
+            raise HTTPException(status_code=502, detail={"error": "curl_cffi request failed",
+                                                          "detail": str(exc), "engine": "curl_cffi-v2"})
 
     try:
         r = await _pipe_client.get(url, headers=_PIPE_HEADERS)
