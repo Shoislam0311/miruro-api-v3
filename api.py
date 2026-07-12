@@ -1,29 +1,19 @@
 import base64, json, gzip, httpx, os, asyncio
-from curl_cffi.requests import AsyncSession as _CurlSession
 
-# ── Deployment mode detection ─────────────────────────────────────────────────
-# Vercel mode  : set VERCEL=1 (auto-set by Vercel runtime) or supply
-#                CF_CLEARANCE env var with a pre-obtained cookie value.
-# ViperTLS mode: everything else (Replit, Railway, Render, Docker, local).
+# ── ViperTLS (required for all deployments) ───────────────────────────────────
+# Vercel / pure-serverless is NOT supported — miruro.tv's Cloudflare blocks
+# AWS/GCP datacenter IPs at the network level regardless of cookies or TLS
+# fingerprints.  Use Railway, Render, a VPS, or Replit instead.
 #
-# In Vercel mode the headless Chromium solve is skipped entirely.
-# Instead the CF_CLEARANCE cookie is injected into every pipe request.
-# The miruro.tv clearance cookie lasts exactly 1 year, so you only need
-# to refresh it once a year.
-
-_CF_CLEARANCE = os.environ.get("CF_CLEARANCE", "").strip()
-_VERCEL_MODE  = bool(os.environ.get("VERCEL") or _CF_CLEARANCE)
-
-if not _VERCEL_MODE:
-    # Pin ViperTLS home to the workspace-local vipertls/ folder created by
-    # `vipertls install-browsers`.  Without this, when uvicorn is sys.argv[0]
-    # ViperTLS resolves its home to .pythonlibs/bin/vipertls (a file, not a dir)
-    # and crashes with FileExistsError.
-    os.environ.setdefault(
-        "VIPERTLS_HOME",
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "vipertls"),
-    )
-    import vipertls
+# Pin ViperTLS home to the workspace-local vipertls/ folder created by
+# `vipertls install-browsers`.  Without this, when uvicorn is sys.argv[0]
+# ViperTLS resolves its home to .pythonlibs/bin/vipertls (a file, not a dir)
+# and crashes with FileExistsError.
+os.environ.setdefault(
+    "VIPERTLS_HOME",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "vipertls"),
+)
+import vipertls
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -86,8 +76,6 @@ async def _do_warmup() -> None:
 
 @app.on_event("startup")
 async def _startup() -> None:
-    if _VERCEL_MODE:
-        return
     global _pipe_client
     _pipe_client = vipertls.AsyncClient(
         impersonate="chrome_145",
@@ -106,39 +94,7 @@ async def _shutdown() -> None:
 
 
 async def _pipe_get(url: str) -> str:
-    """
-    GET the Miruro pipe URL.
-
-    Vercel / CF_CLEARANCE mode — no Chromium, inject cookie via header.
-    ViperTLS mode            — persistent session with automatic re-solve.
-    """
-    if _VERCEL_MODE:
-        try:
-            # Only pass headers that don't conflict with curl_cffi's Chrome145 impersonation.
-            # sec-fetch-* and Priority are set automatically by the impersonated browser profile;
-            # injecting them manually breaks the JA4 fingerprint match.
-            hdrs = {
-                "Referer":         "https://www.miruro.tv/",
-                "Origin":          "https://www.miruro.tv",
-                "Accept-Language": "en-US,en;q=0.9",
-            }
-            if _CF_CLEARANCE:
-                hdrs["Cookie"] = f"cf_clearance={_CF_CLEARANCE}"
-            async with _CurlSession(impersonate="chrome145") as c:
-                r = await c.get(url, headers=hdrs, timeout=30, allow_redirects=True)
-                if r.status_code == 200:
-                    return r.text.strip()
-                raise HTTPException(
-                    status_code=r.status_code,
-                    detail={"error": "Pipe request blocked", "status": r.status_code,
-                            "body": r.text[:300], "engine": "curl_cffi-v2"},
-                )
-        except HTTPException:
-            raise
-        except Exception as exc:
-            raise HTTPException(status_code=502, detail={"error": "curl_cffi request failed",
-                                                          "detail": str(exc), "engine": "curl_cffi-v2"})
-
+    """GET the Miruro pipe URL via the persistent ViperTLS session."""
     try:
         r = await _pipe_client.get(url, headers=_PIPE_HEADERS)
         if r.status_code == 200:
