@@ -1,4 +1,5 @@
 import base64, json, gzip, httpx, os, asyncio
+from curl_cffi.requests import AsyncSession as _CurlSession
 
 # ── Deployment mode detection ─────────────────────────────────────────────────
 # Vercel mode  : set VERCEL=1 (auto-set by Vercel runtime) or supply
@@ -116,8 +117,8 @@ async def _pipe_get(url: str) -> str:
             hdrs = {**_PIPE_HEADERS}
             if _CF_CLEARANCE:
                 hdrs["Cookie"] = f"cf_clearance={_CF_CLEARANCE}"
-            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
-                r = await c.get(url, headers=hdrs)
+            async with _CurlSession(impersonate="chrome145") as c:
+                r = await c.get(url, headers=hdrs, timeout=30, allow_redirects=True)
                 if r.status_code == 200:
                     return r.text.strip()
                 raise HTTPException(
@@ -127,7 +128,7 @@ async def _pipe_get(url: str) -> str:
         except HTTPException:
             raise
         except Exception as exc:
-            raise HTTPException(status_code=502, detail={"error": "httpx request failed", "detail": str(exc)})
+            raise HTTPException(status_code=502, detail={"error": "curl_cffi request failed", "detail": str(exc)})
 
     try:
         r = await _pipe_client.get(url, headers=_PIPE_HEADERS)
