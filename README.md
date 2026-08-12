@@ -1,22 +1,38 @@
-# Miruro API v3
+<p align="center"><img src="./assets/aura-banner.svg" alt="Data, without the drag" width="100%" /></p>
+<p align="center"><a href="https://github.com/Shoislam0311/miruro-api-v3">Source</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="CONTRIBUTION.md">Contribution guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="Dockerfile">Container</a></p>
 
-Miruro API v3 is a lightweight FastAPI service that retrieves and normalizes upstream media data for API consumers. The service is designed for asynchronous HTTP access, browser-aware upstream requests, and container-friendly deployment.
+> A compact API layer for asynchronous, browser-aware upstream retrieval.
 
-## Technology Stack
+## What it does
 
-| Layer | Technology | Role |
-|---|---|---|
-| Runtime | Python 3.12 | Application runtime, pinned by `Dockerfile` |
-| API framework | FastAPI | HTTP application and route definitions in `api.py` |
-| Server | Uvicorn | ASGI process used by `start.sh` and the container |
-| HTTP clients | HTTPX and `curl_cffi` | Upstream requests and browser-like request behavior |
-| TLS/browser support | ViperTLS with Chromium installation | Upstream compatibility where browser fingerprints are required |
-| Configuration | `python-dotenv` | Environment-based local configuration |
-| Deployment | Docker, Railway/Render-compatible port handling, Vercel configuration | Reproducible and platform-aware deployment |
+Miruro API v3 wraps upstream media access behind a small FastAPI service. It combines async HTTP tooling, browser-like request support, and container-friendly runtime behavior so consumers can work with one consistent service boundary.
 
-## Run Locally
+## The pipeline
 
-Create a virtual environment, install the dependencies, and start the API:
+```text
+Client request
+      │
+      ▼
+FastAPI + Uvicorn
+      │
+      ├── HTTPX / curl_cffi
+      ├── ViperTLS + Chromium support
+      └── normalized upstream response
+```
+
+## Stack signal
+
+| Layer | Choice |
+|:--|:--|
+| Runtime | Python 3.12 |
+| API | FastAPI |
+| Server | Uvicorn |
+| Requests | HTTPX, curl_cffi |
+| Browser compatibility | ViperTLS and Chromium installation |
+| Configuration | python-dotenv |
+| Delivery | Docker with Railway/Render-compatible `PORT` handling |
+
+## Start locally
 
 ```bash
 python3.12 -m venv .venv
@@ -25,16 +41,10 @@ pip install -r requirements.txt
 ./start.sh
 ```
 
-The service listens on the `PORT` environment variable and falls back to port `8080`. The Docker image installs the required Chromium system dependencies and starts Uvicorn on `0.0.0.0`.
+The service reads `PORT` from the environment and defaults to `8080`. The Docker image installs the browser dependencies required by the ViperTLS path.
 
-## Repository Layout
+## Keep the edges safe
 
-`api.py` contains the FastAPI application. `requirements.txt` defines the Python dependencies, `start.sh` provides the local startup command, `Dockerfile` describes the container image, and the deployment configuration files document platform-specific runtime expectations.
+Upstream services have their own terms, limits, and content policies. Keep credentials out of Git, avoid unnecessary request volume, and read [CONTRIBUTION.md](CONTRIBUTION.md) before changing request behavior.
 
-## Contributions
-
-Please read [CONTRIBUTION.md](CONTRIBUTION.md) before opening a change. Changes should preserve the API contract, avoid leaking upstream credentials, and include a clear validation note.
-
-## Disclaimer
-
-Use the service responsibly and comply with the terms, rate limits, and applicable policies of every upstream source accessed through it.
+<p align="center"><sub>Small surface. Explicit boundaries. Fewer surprises.</sub></p>
