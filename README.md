@@ -1,16 +1,27 @@
-<p align="center"><img src="./assets/aura-banner.svg" alt="Data, without the drag" width="100%" /></p>
-<p align="center"><a href="https://github.com/Shoislam0311/miruro-api-v3">Source</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="CONTRIBUTION.md">Contribution guide</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="Dockerfile">Container</a></p>
+<div align="center">
 
-> A compact API layer for asynchronous, browser-aware upstream retrieval.
+# Miruro API V3
+
+A small FastAPI service for browser-aware upstream retrieval.
+
+<a href="https://miruro-api-v3.onrender.com/">Live deployment</a>
+&nbsp; · &nbsp;
+<a href="https://github.com/Shoislam0311/miruro-api-v3">Source</a>
+&nbsp; · &nbsp;
+<a href="CONTRIBUTION.md">Contribution guide</a>
+
+</div>
 
 ## What it does
 
-Miruro API v3 wraps upstream media access behind a small FastAPI service. It combines async HTTP tooling, browser-like request support, and container-friendly runtime behavior so consumers can work with one consistent service boundary.
+Miruro API V3 is a small FastAPI service for browser-aware upstream retrieval. It keeps the request boundary in one place and is configured to run on several deployment targets, including Render, Railway, Vercel, Docker, and Replit.
 
-## The pipeline
+The project is a public fork. If you use it, check the upstream service's terms and make sure your request volume and content access are allowed.
+
+## Request path
 
 ```text
-Client request
+client request
       │
       ▼
 FastAPI + Uvicorn
@@ -20,19 +31,25 @@ FastAPI + Uvicorn
       └── normalized upstream response
 ```
 
-## Stack signal
+## Stack
 
-| Layer | Choice |
+| Part | Used here |
 |:--|:--|
 | Runtime | Python 3.12 |
 | API | FastAPI |
 | Server | Uvicorn |
 | Requests | HTTPX, curl_cffi |
-| Browser compatibility | ViperTLS and Chromium installation |
+| Browser compatibility | ViperTLS and Chromium |
 | Configuration | python-dotenv |
 | Delivery | Docker with Railway/Render-compatible `PORT` handling |
 
-## Start locally
+## Try the deployment
+
+<a href="https://miruro-api-v3.onrender.com/"><img src="https://img.shields.io/badge/OPEN%20LIVE%20DEPLOYMENT-Render-3B82F6?style=for-the-badge&logo=render&logoColor=white" alt="Open Miruro API live deployment" /></a>
+
+The service uses `PORT` when it is provided and defaults to `8080`.
+
+## Run locally
 
 ```bash
 python3.12 -m venv .venv
@@ -41,10 +58,15 @@ pip install -r requirements.txt
 ./start.sh
 ```
 
-The service reads `PORT` from the environment and defaults to `8080`. The Docker image installs the browser dependencies required by the ViperTLS path.
+To run the container:
 
-## Keep the edges safe
+```bash
+docker build -t miruro-api-v3 .
+docker run --rm -p 8080:8080 miruro-api-v3
+```
 
-Upstream services have their own terms, limits, and content policies. Keep credentials out of Git, avoid unnecessary request volume, and read [CONTRIBUTION.md](CONTRIBUTION.md) before changing request behavior.
+## Before changing request behavior
 
-<p align="center"><sub>Small surface. Explicit boundaries. Fewer surprises.</sub></p>
+Keep credentials out of Git. Read [CONTRIBUTION.md](CONTRIBUTION.md) before changing request behavior, and avoid unnecessary traffic to upstream services. The Docker image installs the browser dependencies needed by the ViperTLS path.
+
+<div align="center"><sub>Python · FastAPI · Docker · Render · Railway</sub></div>
